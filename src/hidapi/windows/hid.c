@@ -973,6 +973,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 	DWORD len;
 
 	if (hid_init() < 0) {
+         SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "hid_init() < 0 returned NULL");
 		/* register_global_error: global error is reset by hid_init */
 		return NULL;
 	}
@@ -987,6 +988,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 	do {
 		cr = CM_Get_Device_Interface_List_SizeW(&len, &interface_class_guid, NULL, CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
 		if (cr != CR_SUCCESS) {
+			SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "hid_enumerate: CM_Get_Device_Interface_List_SizeW failed cr=0x%lX", (unsigned long)cr);
 			register_global_error(L"Failed to get size of HID device interface list");
 			break;
 		}
@@ -995,11 +997,13 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 
 		device_interface_list = (wchar_t*)calloc(len, sizeof(wchar_t));
 		if (device_interface_list == NULL) {
+			SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "hid_enumerate: calloc failed for device_interface_list len=%lu", (unsigned long)len);
 			register_global_error(L"Failed to allocate memory for HID device interface list");
 			return NULL;
 		}
 		cr = CM_Get_Device_Interface_ListW(&interface_class_guid, NULL, device_interface_list, len, CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
 		if (cr != CR_SUCCESS && cr != CR_BUFFER_SMALL) {
+			SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "hid_enumerate: CM_Get_Device_Interface_ListW failed cr=0x%lX", (unsigned long)cr);
 			register_global_error(L"Failed to get HID device interface list");
 		}
 	} while (cr == CR_BUFFER_SMALL);
@@ -1015,6 +1019,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 
         /* XInput devices don't get real HID reports and are better handled by the raw input driver */
         if (wcsstr(device_interface, L"&IG_") != NULL) {
+            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "hid_enumerate: skipped XInput device: %ls", device_interface);
             continue;
         }
 
@@ -1024,6 +1029,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 		/* Check validity of device_handle. */
 		if (device_handle == INVALID_HANDLE_VALUE) {
 			/* Unable to open the device. */
+			SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "hid_enumerate: failed to open device (error %lu): %ls", GetLastError(), device_interface);
 			continue;
 		}
 
@@ -1036,8 +1042,11 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 		/* Get the Vendor ID and Product ID for this device. */
 		attrib.Size = sizeof(HIDD_ATTRIBUTES);
 		if (!HidD_GetAttributes(device_handle, &attrib)) {
+			SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "hid_enumerate: HidD_GetAttributes failed for: %ls", device_interface);
 			goto cont_close;
 		}
+
+		SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "hid_enumerate: found device VID 0x%04X PID 0x%04X path=%ls", attrib.VendorID, attrib.ProductID, device_interface);
 
 #ifdef HIDAPI_IGNORE_DEVICE
 		/* See if there are any devices we should skip in enumeration */
@@ -1047,6 +1056,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 			HidD_FreePreparsedData(pp_data);
 		}
 		if (HIDAPI_IGNORE_DEVICE(bus_type, attrib.VendorID, attrib.ProductID, caps.UsagePage, caps.Usage, false)) {
+			SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "hid_enumerate: VID 0x%04X PID 0x%04X skipped by HIDAPI_IGNORE_DEVICE", attrib.VendorID, attrib.ProductID);
 			goto cont_close;
 		}
 #endif
@@ -1061,8 +1071,11 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 			struct hid_device_info *tmp = hid_internal_get_device_info(device_interface, device_handle);
 
 			if (tmp == NULL) {
+				SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "hid_enumerate: VID 0x%04X PID 0x%04X hid_internal_get_device_info returned NULL", attrib.VendorID, attrib.ProductID);
 				goto cont_close;
 			}
+
+			SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "hid_enumerate: added VID 0x%04X PID 0x%04X usage_page 0x%04X usage 0x%04X", tmp->vendor_id, tmp->product_id, tmp->usage_page, tmp->usage);
 
 			if (cur_dev) {
 				cur_dev->next = tmp;
