@@ -37,3 +37,29 @@ cmake --install build --config Release --prefix build/SDL3-win64
 # 3. Re-package as zip (optional)
 cd build && zip -r SDL3-win64.zip SDL3-win64/ -q && cd ..
 ```
+
+## force clean rebuild steps
+
+If incremental rebuild is not picking up changes, wipe the build dir and start fresh:
+
+```sh
+# 1. Delete all build artifacts and cached CMake state
+rm -rf build
+
+# 2. Reconfigure from scratch
+cmake -S . -B build \
+  -DCMAKE_TOOLCHAIN_FILE=toolchain-mingw64.cmake \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DSDL_SHARED=ON \
+  -DSDL_STATIC=ON \
+  -DCMAKE_INSTALL_PREFIX=build/SDL3-win64
+
+# 3. Full build
+cmake --build build --config Release -j$(sysctl -n hw.ncpu)
+
+# 4. Install bundle
+cmake --install build --config Release --prefix build/SDL3-win64
+
+# 5. Re-package as zip (optional)
+cd build && zip -r SDL3-win64.zip SDL3-win64/ -q && cd ..
+```
