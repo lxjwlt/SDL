@@ -1056,7 +1056,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
 			HidD_FreePreparsedData(pp_data);
 		}
 		if (HIDAPI_IGNORE_DEVICE(bus_type, attrib.VendorID, attrib.ProductID, caps.UsagePage, caps.Usage, false)) {
-			SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "hid_enumerate: VID 0x%04X PID 0x%04X skipped by HIDAPI_IGNORE_DEVICE", attrib.VendorID, attrib.ProductID);
+			SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "hid_enumerate: VID 0x%04X PID 0x%04X skipped by HIDAPI_IGNORE_DEVICE (bus=%d usage_page=0x%04X usage=0x%04X)", attrib.VendorID, attrib.ProductID, (int)bus_type, (unsigned)caps.UsagePage, (unsigned)caps.Usage);
 			goto cont_close;
 		}
 #endif

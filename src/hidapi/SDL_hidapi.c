@@ -1058,14 +1058,17 @@ bool SDL_HIDAPI_ShouldIgnoreDevice(int bus, Uint16 vendor_id, Uint16 product_id,
 {
     if (libusb) {
         if (use_libusb_whitelist && !RequiresLibUSB(vendor_id, product_id)) {
+            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "ShouldIgnoreDevice: VID 0x%04X PID 0x%04X ignored: libusb whitelist", vendor_id, product_id);
             return true;
         }
         if (!use_libusb_gamecube &&
             vendor_id == USB_VENDOR_NINTENDO && product_id == USB_PRODUCT_NINTENDO_GAMECUBE_ADAPTER) {
+            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "ShouldIgnoreDevice: VID 0x%04X PID 0x%04X ignored: libusb gamecube disabled", vendor_id, product_id);
             return true;
         }
     } else {
         if (RequiresLibUSB(vendor_id, product_id)) {
+            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "ShouldIgnoreDevice: VID 0x%04X PID 0x%04X ignored: requires libusb", vendor_id, product_id);
             return true;
         }
     }
@@ -1083,23 +1086,27 @@ bool SDL_HIDAPI_ShouldIgnoreDevice(int bus, Uint16 vendor_id, Uint16 product_id,
 #endif
                 usage_page == USB_USAGEPAGE_GENERIC_DESKTOP &&
                 (usage == USB_USAGE_GENERIC_KEYBOARD || usage == USB_USAGE_GENERIC_MOUSE)) {
+                SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "ShouldIgnoreDevice: VID 0x%04X PID 0x%04X ignored: Valve keyboard/mouse interface (usage_page=0x%04X usage=0x%04X)", vendor_id, product_id, usage_page, usage);
                 return true;
             }
         } else if (vendor_id == USB_VENDOR_FLYDIGI_V1 && product_id == USB_PRODUCT_FLYDIGI_V1_GAMEPAD) {
             if (usage_page == USB_USAGEPAGE_VENDOR_FLYDIGI) {
                 return false;
             }
+            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "ShouldIgnoreDevice: VID 0x%04X PID 0x%04X ignored: Flydigi V1 non-vendor interface (usage_page=0x%04X usage=0x%04X)", vendor_id, product_id, usage_page, usage);
             return true;
         } else if (vendor_id == USB_VENDOR_FLYDIGI_V2 &&
                     (product_id == USB_PRODUCT_FLYDIGI_V2_APEX || product_id == USB_PRODUCT_FLYDIGI_V2_VADER)) {
             if (usage_page == USB_USAGEPAGE_VENDOR_FLYDIGI) {
                 return false;
             }
+            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "ShouldIgnoreDevice: VID 0x%04X PID 0x%04X ignored: Flydigi V2 non-vendor interface (usage_page=0x%04X usage=0x%04X)", vendor_id, product_id, usage_page, usage);
             return true;
         } else if (usage_page == USB_USAGEPAGE_GENERIC_DESKTOP &&
                    (usage == USB_USAGE_GENERIC_JOYSTICK || usage == USB_USAGE_GENERIC_GAMEPAD || usage == USB_USAGE_GENERIC_MULTIAXISCONTROLLER)) {
             // This is a controller
         } else {
+            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "ShouldIgnoreDevice: VID 0x%04X PID 0x%04X ignored: only_controllers=true, not a recognized controller interface (usage_page=0x%04X usage=0x%04X)", vendor_id, product_id, usage_page, usage);
             return true;
         }
     }
@@ -1109,6 +1116,7 @@ bool SDL_HIDAPI_ShouldIgnoreDevice(int bus, Uint16 vendor_id, Uint16 product_id,
         SDL_snprintf(product_match, sizeof(product_match), "0x%.4x/0x%.4x", vendor_id, product_id);
         if (SDL_strcasestr(SDL_hidapi_ignored_devices, vendor_match) ||
             SDL_strcasestr(SDL_hidapi_ignored_devices, product_match)) {
+            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "ShouldIgnoreDevice: VID 0x%04X PID 0x%04X ignored: in SDL_HINT_HIDAPI_IGNORE_DEVICES list", vendor_id, product_id);
             return true;
         }
     }
