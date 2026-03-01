@@ -8,13 +8,16 @@ __pycache__
 
 *.so
 *.so.*
-*.dll
+# expose build assets
+# *.dll
 *.exe
-*.o
+# expose build assets
+# *.o
 *.obj
 *.res
 *.lib
-*.a
+# expose build assets
+# *.a
 *.la
 *.dSYM
 *,e1f
