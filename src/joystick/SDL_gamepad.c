@@ -1087,6 +1087,9 @@ static GamepadMapping_t *SDL_CreateMappingForHIDAPIGamepad(SDL_GUID guid)
 
     SDL_GetJoystickGUIDInfo(guid, &vendor, &product, &version, NULL);
 
+    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "SDL_CreateMappingForHIDAPIGamepad: started: VID 0x%04X PID 0x%04X guid.data[0]=0x%02X", vendor, product, guid.data[0]);
+
+
     if (SDL_IsJoystickWheel(vendor, product)) {
         // We don't want to pick up Logitech FFB wheels here
         // Some versions of WINE will also not treat devices that show up as gamepads as wheels
@@ -1267,10 +1270,17 @@ static GamepadMapping_t *SDL_CreateMappingForHIDAPIGamepad(SDL_GUID guid)
                 // Apex 5 has additional shoulder macro buttons
                 SDL_strlcat(mapping_string, "misc2:b15,misc3:b16,", sizeof(mapping_string));
             }
-        } else if (SDL_IsJoystickGameSirController(vendor, product) &&
-                   guid.data[0] == SDL_HARDWARE_BUS_USB) {
-            // The GameSir-G7 Pro 8K has a set of paddles and shoulder macro buttons
-            SDL_strlcat(mapping_string, "misc1:b11,paddle1:b13,paddle2:b12,misc2:b14,misc3:b15,", sizeof(mapping_string));
+        } else if (SDL_IsJoystickGameSirController(vendor, product)) {
+            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "SDL_CreateMappingForHIDAPIGamepad: GameSir VID 0x%04X PID 0x%04X guid.data[0]=0x%02X (SDL_HARDWARE_BUS_USB=0x%02X, match=%s)",
+                         vendor, product, guid.data[0], SDL_HARDWARE_BUS_USB,
+                         guid.data[0] == SDL_HARDWARE_BUS_USB ? "YES" : "NO");
+            if (guid.data[0] == SDL_HARDWARE_BUS_USB) {
+                // The GameSir-G7 Pro 8K has a set of paddles and shoulder macro buttons
+                SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "SDL_CreateMappingForHIDAPIGamepad: applying GameSir macro button mapping");
+                SDL_strlcat(mapping_string, "misc1:b11,paddle1:b13,paddle2:b12,misc2:b14,misc3:b15,", sizeof(mapping_string));
+            } else {
+                SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "SDL_CreateMappingForHIDAPIGamepad: skipping GameSir macro button mapping (not USB bus)");
+            }
         } else if (vendor == USB_VENDOR_8BITDO && product == USB_PRODUCT_8BITDO_ULTIMATE2_WIRELESS) {
             SDL_strlcat(mapping_string, "paddle1:b12,paddle2:b11,paddle3:b14,paddle4:b13,", sizeof(mapping_string));
         } else {
@@ -1402,20 +1412,27 @@ static GamepadMapping_t *SDL_PrivateGetGamepadMappingForGUID(SDL_GUID guid, bool
 {
     GamepadMapping_t *mapping;
 
+    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "SDL_PrivateGetGamepadMappingForGUID: guid driver_sig=0x%02X('%c') bus=0x%02X adding_mapping=%d",
+                 guid.data[14], (guid.data[14] >= 32 && guid.data[14] < 127) ? guid.data[14] : '?',
+                 guid.data[0], adding_mapping);
+
     // Try first with an exact match on version and CRC
     mapping = SDL_PrivateMatchGamepadMappingForGUID(guid, true, true);
     if (mapping) {
+        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "SDL_PrivateGetGamepadMappingForGUID: returned early - matched existing mapping (exact version+CRC): %s", mapping->name);
         return mapping;
     }
 
     if (adding_mapping) {
         // We didn't find an existing mapping
+        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "SDL_PrivateGetGamepadMappingForGUID: returned early - adding_mapping=true, no existing mapping found");
         return NULL;
     }
 
     // Try without CRC match
     mapping = SDL_PrivateMatchGamepadMappingForGUID(guid, true, false);
     if (mapping) {
+        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "SDL_PrivateGetGamepadMappingForGUID: returned early - matched existing mapping (version, no CRC): %s", mapping->name);
         return mapping;
     }
 
@@ -1423,11 +1440,13 @@ static GamepadMapping_t *SDL_PrivateGetGamepadMappingForGUID(SDL_GUID guid, bool
     if (SDL_JoystickGUIDUsesVersion(guid)) {
         mapping = SDL_PrivateMatchGamepadMappingForGUID(guid, false, true);
         if (mapping) {
+            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "SDL_PrivateGetGamepadMappingForGUID: returned early - matched existing mapping (no version, CRC): %s", mapping->name);
             return mapping;
         }
 
         mapping = SDL_PrivateMatchGamepadMappingForGUID(guid, false, false);
         if (mapping) {
+            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "SDL_PrivateGetGamepadMappingForGUID: returned early - matched existing mapping (no version, no CRC): %s", mapping->name);
             return mapping;
         }
     }
@@ -1435,9 +1454,12 @@ static GamepadMapping_t *SDL_PrivateGetGamepadMappingForGUID(SDL_GUID guid, bool
 #ifdef SDL_JOYSTICK_XINPUT
     if (SDL_IsJoystickXInput(guid)) {
         // This is an XInput device
+        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "SDL_PrivateGetGamepadMappingForGUID: returned early - detected as XInput (driver_sig=0x%02X)", guid.data[14]);
         return s_pXInputMapping;
     }
 #endif
+    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "SDL_PrivateGetGamepadMappingForGUID: no existing mapping, detecting driver type: HIDAPI=%d RAWINPUT=%d WGI=%d VIRTUAL=%d",
+                 SDL_IsJoystickHIDAPI(guid), SDL_IsJoystickRAWINPUT(guid), SDL_IsJoystickWGI(guid), SDL_IsJoystickVIRTUAL(guid));
     if (SDL_IsJoystickHIDAPI(guid)) {
         mapping = SDL_CreateMappingForHIDAPIGamepad(guid);
     } else if (SDL_IsJoystickRAWINPUT(guid)) {
