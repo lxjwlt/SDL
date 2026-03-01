@@ -129,13 +129,21 @@ static void HIDAPI_DriverGameSir_UnregisterHints(SDL_HintCallback callback, void
 
 static bool HIDAPI_DriverGameSir_IsEnabled(void)
 {
-    return SDL_GetHintBoolean(SDL_HINT_JOYSTICK_HIDAPI_GAMESIR, SDL_GetHintBoolean(SDL_HINT_JOYSTICK_HIDAPI, SDL_HIDAPI_DEFAULT));
+    bool enabled;
+
+    enabled = SDL_GetHintBoolean(SDL_HINT_JOYSTICK_HIDAPI_GAMESIR, SDL_GetHintBoolean(SDL_HINT_JOYSTICK_HIDAPI, SDL_HIDAPI_DEFAULT));
+
+    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "HIDAPI_DriverGameSir_IsEnabled=%s", enabled ? "enabled" : "disabled");
+
+    return enabled;
 }
 
 
 static bool HIDAPI_DriverGameSir_IsSupportedDevice(SDL_HIDAPI_Device *device, const char *name, SDL_GamepadType type, Uint16 vendor_id, Uint16 product_id, Uint16 version, int interface_number, int interface_class, int interface_subclass, int interface_protocol)
 {
-    return SDL_IsJoystickGameSirController(vendor_id, product_id);
+    bool supported = SDL_IsJoystickGameSirController(vendor_id, product_id);
+    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "HIDAPI_DriverGameSir_IsSupportedDevice: VID 0x%04X PID 0x%04X -> %s", vendor_id, product_id, supported ? "YES" : "no");
+    return supported;
 }
 
 static SDL_hid_device *HIDAPI_DriverGameSir_GetOutputHandle(SDL_HIDAPI_Device *device)
@@ -346,6 +354,8 @@ static SDL_hid_device *GetOutputHandle(SDL_HIDAPI_Device *device)
 
 static bool HIDAPI_DriverGameSir_InitDevice(SDL_HIDAPI_Device *device)
 {
+    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "HIDAPI_DriverGameSir_InitDevice started: PID 0x%04X", device->product_id);
+
     SDL_DriverGamesir_Context *ctx = (SDL_DriverGamesir_Context *)SDL_calloc(1, sizeof(*ctx));
     if (!ctx) {
         return false;

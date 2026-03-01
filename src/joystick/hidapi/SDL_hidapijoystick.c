@@ -367,14 +367,17 @@ static SDL_HIDAPI_DeviceDriver *HIDAPI_GetDeviceDriver(SDL_HIDAPI_Device *device
     }
 
     if (SDL_ShouldIgnoreJoystick(device->vendor_id, device->product_id, device->version, device->name)) {
+        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "HIDAPI_GetDeviceDriver: VID 0x%04X PID 0x%04X ignored by SDL_ShouldIgnoreJoystick", device->vendor_id, device->product_id);
         return NULL;
     }
 
     if (device->vendor_id != USB_VENDOR_VALVE && device->vendor_id != USB_VENDOR_FLYDIGI_V1 && device->vendor_id != USB_VENDOR_FLYDIGI_V2) {
         if (device->usage_page && device->usage_page != USAGE_PAGE_GENERIC_DESKTOP) {
+            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "HIDAPI_GetDeviceDriver: VID 0x%04X PID 0x%04X filtered by usage_page 0x%04X", device->vendor_id, device->product_id, device->usage_page);
             return NULL;
         }
         if (device->usage && device->usage != USAGE_JOYSTICK && device->usage != USAGE_GAMEPAD && device->usage != USAGE_MULTIAXISCONTROLLER) {
+            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "HIDAPI_GetDeviceDriver: VID 0x%04X PID 0x%04X filtered by usage 0x%04X", device->vendor_id, device->product_id, device->usage);
             return NULL;
         }
     }
@@ -385,6 +388,7 @@ static SDL_HIDAPI_DeviceDriver *HIDAPI_GetDeviceDriver(SDL_HIDAPI_Device *device
             return driver;
         }
     }
+    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "HIDAPI_GetDeviceDriver: VID 0x%04X PID 0x%04X not claimed by any driver", device->vendor_id, device->product_id);
     return NULL;
 }
 
@@ -889,6 +893,8 @@ static SDL_HIDAPI_Device *HIDAPI_AddDevice(const struct SDL_hid_device_info *inf
     bool removed;
     Uint16 bus;
 
+    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "HIDAPI_AddDevice started");
+
     SDL_AssertJoysticksLocked();
 
     for (curr = SDL_HIDAPI_devices, last = NULL; curr; last = curr, curr = curr->next) {
@@ -929,6 +935,8 @@ static SDL_HIDAPI_Device *HIDAPI_AddDevice(const struct SDL_hid_device_info *inf
         }
 
         if (!device->name) {
+            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "no device name");
+
             SDL_free(device->manufacturer_string);
             SDL_free(device->product_string);
             SDL_free(device->serial);
@@ -968,6 +976,7 @@ static SDL_HIDAPI_Device *HIDAPI_AddDevice(const struct SDL_hid_device_info *inf
     removed = false;
     HIDAPI_SetupDeviceDriver(device, &removed);
     if (removed) {
+        SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "removed is true, stop add HIDAPI");
         return NULL;
     }
 
@@ -1127,10 +1136,12 @@ static void HIDAPI_UpdateDeviceList(void)
     }
 
     // Enumerate the devices
+    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "HIDAPI_UpdateDeviceList: numdrivers=%d", SDL_HIDAPI_numdrivers);
     if (SDL_HIDAPI_numdrivers > 0) {
         devs = SDL_hid_enumerate(0, 0);
         if (devs) {
             for (info = devs; info; info = info->next) {
+                SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "HID enumerate: VID 0x%04X PID 0x%04X path=%s", info->vendor_id, info->product_id, info->path ? info->path : "NULL");
                 device = HIDAPI_GetJoystickByInfo(info->path, info->vendor_id, info->product_id);
                 if (device) {
                     device->seen = true;
@@ -1144,6 +1155,8 @@ static void HIDAPI_UpdateDeviceList(void)
                 }
             }
             SDL_hid_free_enumeration(devs);
+        } else {
+            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "HIDAPI_UpdateDeviceList: SDL_hid_enumerate returned NULL");
         }
     }
 
