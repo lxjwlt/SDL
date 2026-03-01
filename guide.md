@@ -22,3 +22,11 @@ All SDL3 headers are in `include/SDL3/`
 
 ### Usage
 See `build/SDL3-win64/README.txt` for integration instructions.
+
+## build steps
+
+```
+cmake --build build --config Release -j$(sysctl -n hw.ncpu)
+
+cmake --install build --config Release --prefix build/SDL3-win64
+```
