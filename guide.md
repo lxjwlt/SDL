@@ -23,10 +23,17 @@ All SDL3 headers are in `include/SDL3/`
 ### Usage
 See `build/SDL3-win64/README.txt` for integration instructions.
 
-## build steps
+## rebuild steps
 
-```
+After modifying source files (e.g. `src/joystick/usb_ids.h`), no need to re-run CMake configure. Just rebuild and reinstall:
+
+```sh
+# 1. Rebuild (uses all CPU cores)
 cmake --build build --config Release -j$(sysctl -n hw.ncpu)
 
+# 2. Overwrite the previous install bundle
 cmake --install build --config Release --prefix build/SDL3-win64
+
+# 3. Re-package as zip (optional)
+cd build && zip -r SDL3-win64.zip SDL3-win64/ -q && cd ..
 ```
