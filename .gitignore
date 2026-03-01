@@ -10,7 +10,7 @@ __pycache__
 *.so.*
 # expose build assets
 # *.dll
-*.exe
+# *.exe
 # expose build assets
 # *.o
 *.obj
