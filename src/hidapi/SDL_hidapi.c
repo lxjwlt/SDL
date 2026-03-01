@@ -1102,6 +1102,8 @@ bool SDL_HIDAPI_ShouldIgnoreDevice(int bus, Uint16 vendor_id, Uint16 product_id,
             }
             SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "ShouldIgnoreDevice: VID 0x%04X PID 0x%04X ignored: Flydigi V2 non-vendor interface (usage_page=0x%04X usage=0x%04X)", vendor_id, product_id, usage_page, usage);
             return true;
+        } else if (vendor_id == USB_VENDOR_GAMESIR && product_id == USB_PRODUCT_GAMESIR_GAMEPAD_G7_PRO_8K) {
+            return false;
         } else if (usage_page == USB_USAGEPAGE_GENERIC_DESKTOP &&
                    (usage == USB_USAGE_GENERIC_JOYSTICK || usage == USB_USAGE_GENERIC_GAMEPAD || usage == USB_USAGE_GENERIC_MULTIAXISCONTROLLER)) {
             // This is a controller
