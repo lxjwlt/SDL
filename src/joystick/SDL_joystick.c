@@ -3337,6 +3337,7 @@ bool SDL_IsJoystickSteamTriton(Uint16 vendor_id, Uint16 product_id)
 
 bool SDL_IsJoystickXInput(SDL_GUID guid)
 {
+    if (SDL_IsJoystickHIDAPI(guid)) return false;
     return (guid.data[14] == 'x') ? true : false;
 }
 
@@ -3347,7 +3348,15 @@ bool SDL_IsJoystickWGI(SDL_GUID guid)
 
 bool SDL_IsJoystickHIDAPI(SDL_GUID guid)
 {
-    return (guid.data[14] == 'h') ? true : false;
+    if (guid.data[14] == 'h') {
+        return true;
+    }
+    Uint16 vendor_id, product_id;
+    SDL_GetJoystickGUIDInfo(guid, &vendor_id, &product_id, NULL, NULL);
+    if (SDL_IsJoystickGameSirController(vendor_id, product_id)) {
+        return true;
+    }
+    return false;
 }
 
 bool SDL_IsJoystickMFI(SDL_GUID guid)
